@@ -1,4 +1,4 @@
-# SSLM - SeaStar Library Manager
+# SSLM - SeeStar Library Manager
 ## User Manual
 
 **Version**: 1.0.0-beta.1
@@ -28,7 +28,7 @@
 
 ## Introduction
 
-**SSLM (SeaStar Library Manager)** is a desktop web application for managing your astrophotography collection from a SeeStar telescope. It runs locally on your Windows PC — no internet connection is required.
+**SSLM (SeeStar Library Manager)** is a desktop web application for managing your astrophotography collection from a SeeStar telescope. It runs locally on your Windows PC — no internet connection is required.
 
 ### What SSLM Does
 
@@ -797,5 +797,5 @@ Example: `Light_NGC 6729_30.0s_IRCUT_20250822-203353.fit`
 
 ---
 
-*SSLM - SeaStar Library Manager v1.0.0-beta.1 — User Manual*
+*SSLM - SeeStar Library Manager v1.0.0-beta.1 — User Manual*
 *Last updated: February 2026*

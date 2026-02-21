@@ -181,4 +181,4 @@ astronoob001@gmail.com
 
 ---
 
-*SSLM — SeaStar Library Manager v1.0.0-beta.1 | Last updated: February 2026*
+*SSLM — SeeStar Library Manager v1.0.0-beta.1 | Last updated: February 2026*
