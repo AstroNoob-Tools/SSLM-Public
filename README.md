@@ -8,11 +8,11 @@ A local desktop web application for managing astrophotography files captured wit
 
 Download the latest installer from the **[Releases](https://github.com/AstroNoob-Tools/SSLM/releases)** page.
 
-**Current release**: `v1.0.0-beta.1` — first public beta
+**Current release**: `v1.0.0-beta.2` — first public beta
 
 **No prerequisites** — Node.js is bundled inside the installer.
 
-1. Run `SSLM-Setup-v1.0.0-beta.1.exe`
+1. Run `SSLM-Setup-v1.0.0-beta.2.exe`
 2. Follow the wizard (installs to `%LOCALAPPDATA%\SSLM\` — no admin rights needed)
 3. Launch from the **Start Menu** or **Desktop shortcut**
 4. Your browser opens automatically at `http://localhost:3000`
@@ -129,7 +129,7 @@ npm run build
 "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\sslm.iss
 ```
 
-Output: `installer/output/SSLM-Setup-v1.0.0-beta.1.exe`
+Output: `installer/output/SSLM-Setup-v1.0.0-beta.2.exe`
 
 See [documentation/InstallationManual.md](documentation/InstallationManual.md) for the full release checklist.
 
@@ -181,4 +181,4 @@ astronoob001@gmail.com
 
 ---
 
-*SSLM — SeeStar Library Manager v1.0.0-beta.1 | Last updated: February 2026*
+*SSLM — SeeStar Library Manager v1.0.0-beta.2 | Last updated: February 2026*

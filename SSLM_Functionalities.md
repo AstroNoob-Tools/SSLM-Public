@@ -209,7 +209,7 @@ The installer wraps `sslm.exe` into a standard Windows setup wizard (`installer/
 
 The canonical application version is defined in `installer/sslm.iss`:
 ```
-#define AppVersion "1.0.0-beta.1"
+#define AppVersion "1.0.0-beta.2"
 ```
 
 `server.js` reads this at startup via `readAppVersion()`:

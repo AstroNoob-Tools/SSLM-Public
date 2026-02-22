@@ -1,7 +1,7 @@
 # SSLM - SeeStar Library Manager
 ## User Manual
 
-**Version**: 1.0.0-beta.1
+**Version**: 1.0.0-beta.2
 **Date**: February 2026
 
 ---
@@ -797,5 +797,5 @@ Example: `Light_NGC 6729_30.0s_IRCUT_20250822-203353.fit`
 
 ---
 
-*SSLM - SeeStar Library Manager v1.0.0-beta.1 — User Manual*
+*SSLM - SeeStar Library Manager v1.0.0-beta.2 — User Manual*
 *Last updated: February 2026*
