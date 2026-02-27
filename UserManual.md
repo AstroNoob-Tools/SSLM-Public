@@ -1,7 +1,7 @@
 # SSLM - SeeStar Library Manager
 ## User Manual
 
-**Version**: 1.0.0-beta.2
+**Version**: 1.0.0-beta.3
 **Date**: February 2026
 
 ---
@@ -21,8 +21,9 @@
 11. [Cleanup Operations](#cleanup-operations)
 12. [Image Viewer](#image-viewer)
 13. [Navigation & Tips](#navigation--tips)
-14. [Favorites](#favorites)
-15. [Frequently Asked Questions](#frequently-asked-questions)
+14. [Online Mode & Catalog Lookup](#online-mode--catalog-lookup)
+15. [Favorites](#favorites)
+16. [Frequently Asked Questions](#frequently-asked-questions)
 
 ---
 
@@ -116,8 +117,8 @@ A checkbox labelled **Expurged** is also available on this step:
 
 | Mode | Behaviour |
 |------|-----------|
-| **Full** (unchecked, default) | All files copied, including JPG and thumbnail previews in `_sub` directories |
-| **Expurged** (checked) | Only `.fit` light frames are copied from `_sub` directories — JPG and thumbnail files are intentionally skipped |
+| **Full** (unchecked, default) | All files copied, including JPG and thumbnail previews in `_sub` and `-sub` directories |
+| **Expurged** (checked) | Only `.fit` light frames are copied from `_sub`/`-sub` directories — JPG and thumbnail files are intentionally skipped |
 
 > **When to use Expurged mode**: If you plan to process only the raw `.fit` data and don't need preview images in your sub-frame directories, Expurged mode can save several gigabytes of disk space.
 >
@@ -233,8 +234,8 @@ A checkbox labelled **Expurged** is also available on this step:
 
 | Mode | Behaviour |
 |------|-----------|
-| **Full** (unchecked, default) | All files merged, including JPG and thumbnail previews in `_sub` directories |
-| **Expurged** (checked) | Only `.fit` light frames are merged from `_sub` directories — JPG and thumbnail files are skipped |
+| **Full** (unchecked, default) | All files merged, including JPG and thumbnail previews in `_sub` and `-sub` directories |
+| **Expurged** (checked) | Only `.fit` light frames are merged from `_sub`/`-sub` directories — JPG and thumbnail files are skipped |
 
 The required disk space shown on this step reflects the selected mode.
 
@@ -370,7 +371,7 @@ If SSLM detects empty folders in your library:
 
 ### Sub-Frame Cleanup
 
-If your `_sub` directories contain JPG or thumbnail files (not needed for processing):
+If your `_sub` or `-sub` directories contain JPG or thumbnail files (not needed for processing):
 - Shows total space that can be freed
 - **Clean All**: Removes non-.fit files from all sub-frame directories
 - **Individual cleanup**: Shown per-object in the objects table
@@ -386,6 +387,7 @@ A comprehensive table of all celestial objects, with:
 | Object | Object name (clickable for details) |
 | Catalog | Catalog type (Messier, NGC, IC, etc.) |
 | Sub-Frames | Whether sub-frame exposures were saved |
+| Mount | Mount mode used during capture — `EQ`, `Alt/Az`, or `Both` (colour-coded badge) |
 | .fit / Other | File count breakdown in sub-frame directory |
 | Integration | Total integration time |
 | Files | Total file count for the object |
@@ -407,7 +409,17 @@ Clicking an object name opens a detailed view with comprehensive information abo
 - Object name
 - Catalog type
 - Sub-frame presence indicator
+- Mount mode badge (`EQ`, `Alt/Az`, or `Both`) — shown when the object has sub-frames
 - Quick statistics (integration time, light frames, sessions, total size)
+
+When **Online Mode** is active (see [Online Mode & Catalog Lookup](#online-mode--catalog-lookup)), two additional items appear below the catalog line:
+
+- **Also known as**: A list of alternative catalog designations for the object, retrieved from the SIMBAD astronomical database (e.g., an object known as `NGC 1976` may also show `M 42`, `Orion Nebula`). Includes major catalogs: Messier (M), NGC, IC, Caldwell (C), Sharpless (Sh), Abell, Barnard (B), Henry Draper (HD), Hipparcos (HIP).
+- **J2000 Coordinates**: Right Ascension and Declination in standard sexagesimal notation (e.g., `RA 05h 35m 17s / Dec −05° 23′ 28″`).
+
+If the object is not recognised by SIMBAD, or if the network is unavailable, these items are silently omitted — the detail page is otherwise unaffected.
+
+When aliases are available, a **Re Classify** button also appears in the top-right corner of the header. See [Online Mode & Catalog Lookup — Re-Classification](#re-classification) for details.
 
 ### Summary Cards
 
@@ -587,8 +599,8 @@ The SeeStar device saves both `.fit` (scientific data) and `.jpg`/thumbnail prev
 
 | Deleted | Kept |
 |---------|------|
-| `.jpg` preview images in `_sub` folders | All `.fit` data files |
-| `_thn.jpg` thumbnails in `_sub` folders | All stacked images in main folder |
+| `.jpg` preview images in `_sub`/`-sub` folders | All `.fit` data files |
+| `_thn.jpg` thumbnails in `_sub`/`-sub` folders | All stacked images in main folder |
 | | All `.fit` light frames |
 
 ### Imaging Session Deletion
@@ -606,7 +618,7 @@ To permanently remove all files for a specific imaging session:
 | Deleted | Location |
 |---------|----------|
 | All stacked images for the session (`.fit`, `.jpg`, `_thn.jpg`) | Main object folder |
-| All light frames for the session (`.fit`, `.jpg`, `_thn.jpg`) | `_sub` folder |
+| All light frames for the session (`.fit`, `.jpg`, `_thn.jpg`) | `_sub` and/or `-sub` folder |
 
 > **Warning**: Session deletion is permanent and cannot be undone. There is no Recycle Bin recovery.
 
@@ -671,6 +683,93 @@ The Dashboard button (📊) is context-aware:
 
 ---
 
+## Online Mode & Catalog Lookup
+
+SSLM has two operating modes:
+
+| Mode | Badge Colour | Behaviour |
+|------|-------------|-----------|
+| **Offline** (default) | Grey | All core features work with no internet. SIMBAD lookup is disabled. |
+| **Online** | Green | Core features plus live astronomical cross-reference lookup from the SIMBAD database. |
+
+### Toggling Online / Offline Mode
+
+Click the **Offline** or **Online** badge in the application header at any time to switch modes instantly. No restart is required. The badge changes colour to reflect the current state.
+
+### What Online Mode Adds
+
+When Online Mode is active, the **Object Detail View** gains two additional items in the header:
+
+#### Also Known As
+
+A list of alternative catalog designations for the object, sourced from the [SIMBAD Astronomical Database](https://simbad.cds.unistra.fr/simbad/). For example, `M 42` may also appear as `NGC 1976` and `Orion Nebula`.
+
+Catalogs included in the lookup:
+
+| Catalog | Prefix |
+|---------|--------|
+| Messier | M |
+| New General Catalogue | NGC |
+| Index Catalogue | IC |
+| Caldwell | C |
+| Sharpless | Sh |
+| Abell | Abell |
+| Barnard | B |
+| Henry Draper | HD |
+| Hipparcos | HIP |
+
+#### J2000 Coordinates
+
+The object's J2000 equatorial coordinates in sexagesimal format:
+- **RA**: Right Ascension, e.g., `05h 35m 17s`
+- **Dec**: Declination, e.g., `−05° 23′ 28″`
+
+### Caching
+
+Lookups are cached in memory for the duration of the session. Revisiting the same object's detail page does not trigger a new network request.
+
+### Graceful Degradation
+
+If the SIMBAD service is unreachable, or the object name is not found in the database, the "Also known as" and J2000 sections are simply not shown. No error message is displayed and the rest of the Object Detail page is unaffected.
+
+### Re-Classification
+
+When SIMBAD returns at least one alias for the current object, a **Re Classify** button appears in the top-right corner of the Object Detail header. This allows you to permanently rename the object across your entire library to any of its alternative catalog designations.
+
+#### How to Re-Classify an Object
+
+1. Open the **Object Detail View** for the object
+2. Enable **Online Mode** (click the badge in the header if not already online)
+3. Wait for the "Also known as" section to appear
+4. Click the **Re Classify** button (top-right of the header)
+5. A dialog shows all available alternative names — click the one you want
+6. A confirmation dialog appears, warning that all files and folders will be permanently renamed
+7. Click **Rename** to proceed
+
+#### What Gets Renamed
+
+SSLM renames every file and folder associated with the object in one operation:
+
+| Before | After (example: M 42 → NGC 1976) |
+|--------|----------------------------------|
+| `M 42/` | `NGC 1976/` |
+| `M 42_sub/` | `NGC 1976_sub/` |
+| `M 42-sub/` | `NGC 1976-sub/` |
+| `M 42_mosaic/` | `NGC 1976_mosaic/` |
+| `Stacked_210_M 42_30.0s_IRCUT_....fit` | `Stacked_210_NGC 1976_30.0s_IRCUT_....fit` |
+| All other files inside those folders | Renamed to match |
+
+#### Safety
+
+- Pre-flight validation confirms the target name does not already exist in the library before any changes are made
+- Files are renamed before folders to prevent mid-operation inconsistencies
+- Any individual errors are collected and reported at the end — the operation does not stop silently
+- The dashboard refreshes automatically on completion
+
+> **Warning**: Re-classification is a permanent file system operation. There is no automatic undo. Ensure you have selected the correct target name before confirming.
+
+---
+
 ## Favourites
 
 Favourites allow you to quickly access folders you use frequently, without browsing every time.
@@ -719,9 +818,21 @@ When the same file (same relative path) exists in multiple source libraries, SSL
 
 Integration time is calculated from stacked image filenames. Each stacked image filename contains the number of stacked frames (e.g., `Stacked_210_...`) and the exposure per frame (e.g., `30.0s`). Integration time = frames × exposure time. For example, 210 frames × 30 seconds = 6,300 seconds = 1 hour 45 minutes.
 
+### Can I rename an object to a different catalog designation?
+
+Yes, using the **Re-Classification** feature. Enable Online Mode, open the Object Detail page for the object, and click the **Re Classify** button that appears when SIMBAD returns aliases. Select the new name and confirm — SSLM renames every file and folder in the library that belongs to that object. The operation is permanent and cannot be automatically undone, so review your selection carefully before confirming.
+
+### What does Online Mode do?
+
+When Online Mode is active, SSLM queries the [SIMBAD Astronomical Database](https://simbad.cds.unistra.fr/simbad/) each time you open an Object Detail page. It retrieves:
+- **Also known as**: alternative catalog identifiers for the object (Messier, NGC, IC, Caldwell, Sharpless, etc.)
+- **J2000 Coordinates**: Right Ascension and Declination in sexagesimal format
+
+Click the Online/Offline badge in the header to toggle this feature at any time. Offline Mode (the default) disables the lookup — useful when you have no internet access or simply don't need the extra data. All core library management features work in both modes.
+
 ### What is Expurged mode?
 
-Expurged mode is an option available in both the Import and Merge wizards (Step 2). When enabled, SSLM skips all JPG and thumbnail preview files inside `_sub` directories and copies only `.fit` light frames. This can save several gigabytes of disk space since the SeeStar generates a JPG and thumbnail for every sub-frame captured.
+Expurged mode is an option available in both the Import and Merge wizards (Step 2). When enabled, SSLM skips all JPG and thumbnail preview files inside `_sub` and `-sub` directories and copies only `.fit` light frames. This can save several gigabytes of disk space since the SeeStar generates a JPG and thumbnail for every sub-frame captured.
 
 Use Expurged mode if you only intend to process the raw `.fit` data with stacking software and have no need for the preview images. The `.fit` files in your main object folders (stacked images) are always copied regardless of this setting.
 
@@ -786,7 +897,8 @@ Example: `Light_NGC 6729_30.0s_IRCUT_20250822-203353.fit`
 | Pattern | Example | Meaning |
 |---------|---------|---------|
 | `[Object]` | `NGC 6729` | Main stacked images |
-| `[Object]_sub` | `NGC 6729_sub` | Individual sub-frames |
+| `[Object]_sub` | `NGC 6729_sub` | Sub-frames (EQ mount mode) |
+| `[Object]-sub` | `NGC 6729-sub` | Sub-frames (Alt/Az mount mode) |
 | `[Object]_mosaic` | `M 45_mosaic` | Mosaic capture |
 
 ### Filter Codes
@@ -797,5 +909,5 @@ Example: `Light_NGC 6729_30.0s_IRCUT_20250822-203353.fit`
 
 ---
 
-*SSLM - SeeStar Library Manager v1.0.0-beta.2 — User Manual*
+*SSLM - SeeStar Library Manager v1.0.0-beta.3 — User Manual*
 *Last updated: February 2026*

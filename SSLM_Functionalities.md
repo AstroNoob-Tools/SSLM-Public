@@ -54,11 +54,11 @@ Both the Import and Merge engines support an **Expurged** sub-frame mode, contro
 
 | Value | Behaviour |
 |-------|-----------|
-| `'all'` (default) | All files copied, including JPG and thumbnail previews in `_sub` directories |
-| `'fit_only'` | Only `.fit` light frames are copied from `_sub` directories; non-FITS files are skipped |
+| `'all'` (default) | All files copied, including JPG and thumbnail previews in `_sub` and `-sub` directories |
+| `'fit_only'` | Only `.fit` light frames are copied from `_sub`/`-sub` directories; non-FITS files are skipped |
 
 **Detection logic**: A file is classified as a "subframe non-fit" candidate when:
-1. Its relative path contains a parent directory whose name ends with `_sub`, **AND**
+1. Its relative path contains a parent directory whose name ends with `_sub` **or** `-sub`, **AND**
 2. Its file extension is not `.fit`
 
 This logic is implemented as `isSubframeNonFit(relativePath)` in `importService.js`, `mergeService.js`, and `diskSpaceValidator.js`. All three are kept in sync so that space calculations, file scanning, and transfer validation all honour the same exclusion rule.
@@ -109,6 +109,19 @@ The `catalogParser.js` module uses regex patterns to categorize objects into:
 - **Deep Sky**: Messier (`M`), NGC, IC, Sharpless (`SH`), Caldwell (`C`).
 - **Stars/Other**: Named stars (e.g., `Betelgeuse`) or custom object names.
 
+### Mount Mode Detection
+
+The catalog parser also detects the **mount mode** used during capture by inspecting the sub-frame folder suffix:
+
+| Sub-frame folder suffix | Mount mode | `mountMode` value |
+|------------------------|------------|------------------|
+| `_sub` (e.g., `NGC 6729_sub/`) | Equatorial (EQ) | `'eq'` |
+| `-sub` (e.g., `NGC 6729-sub/`) | Alt-Azimuth (Alt/Az) | `'altaz'` |
+| Both present | Mixed sessions | `'both'` |
+| Neither | No sub-frames saved | `null` |
+
+The `fileAnalyzer.js` service exposes two distinct sub-folder fields per object (`subFolderEq`, `subFolderAltAz`) alongside the combined `mountMode`. A backward-compatible `subFolder` alias (preferring EQ when both exist) is retained for internal compatibility.
+
 ---
 
 ## 5. Storage Optimization (Cleanup)
@@ -116,7 +129,7 @@ The `catalogParser.js` module uses regex patterns to categorize objects into:
 The Cleanup module is designed to reclaim disk space without touching scientific data.
 
 ### Targeted File Types
-Cleanup operations differ from standard "delete" commands. They strictly target **non-essential derivative files** within `_sub` directories:
+Cleanup operations differ from standard "delete" commands. They strictly target **non-essential derivative files** within `_sub` and `-sub` directories:
 - **Targets**: `*.jpg` (previews), `*_thn.jpg` (thumbnails).
 - **Protected**: `*.fit` (FITS data), `*.mp4` (videos), and any files in the main object directory (stacked results).
 
@@ -129,7 +142,7 @@ A targeted deletion operation removes all files belonging to a single imaging se
 - **Safety**: Requires explicit file list passed from the client (no wildcard deletion). Each file's size is read before deletion and reported in the response as `spaceFreed`.
 
 ### Safety Mechanisms
-- **Context Awareness**: Cleanup is only available for `_sub` directories. The main object directories (containing your final stacks) are never subjected to bulk cleanup.
+- **Context Awareness**: Cleanup is only available for `_sub` and `-sub` directories. The main object directories (containing your final stacks) are never subjected to bulk cleanup.
 - **Empty Directory Pruning**: Recursive removal of directories that contain 0 files (often left over from renaming objects on the mobile app).
 - **Session Deletion Confirmation**: Session deletion always requires user confirmation in a dialog showing the file count before any files are removed.
 
@@ -209,7 +222,7 @@ The installer wraps `sslm.exe` into a standard Windows setup wizard (`installer/
 
 The canonical application version is defined in `installer/sslm.iss`:
 ```
-#define AppVersion "1.0.0-beta.2"
+#define AppVersion "1.0.0-beta.3"
 ```
 
 `server.js` reads this at startup via `readAppVersion()`:
@@ -246,6 +259,19 @@ The About dialog is opened via the ℹ️ button in the application header. It i
 - Contact email as a `mailto:` link (`astronoob001@gmail.com`)
 - Purpose description
 
+### Online / Offline Mode Toggle
+
+SSLM operates in two modes:
+
+| Mode | Default | Effect |
+|------|---------|--------|
+| **Offline** | Yes | All core features active; SIMBAD lookup disabled |
+| **Online** | No | Core features + live SIMBAD catalog cross-reference |
+
+The current mode is shown as a badge in the application header. **Clicking the badge toggles the mode instantly** — no restart or reload required. The toggle state is held in memory (`app.isOnline`) and consulted by any feature gated behind it.
+
+---
+
 ### Quit Button
 
 The ⏻ Quit button provides a graceful in-browser shutdown mechanism:
@@ -275,3 +301,152 @@ The ⏻ Quit button provides a graceful in-browser shutdown mechanism:
 | `public/assets/sslm.png` | Welcome screen hero image (160×160 px with `drop-shadow`) |
 | `public/assets/astroNoobLogo.png` | About dialog (80×80 px) |
 | `public/assets/sslm.ico` | Windows exe icon (embedded) + installer icon |
+
+---
+
+## 9. Online Mode — SIMBAD Catalog Lookup
+
+When the user enables Online Mode, SSLM queries the [SIMBAD TAP service](https://simbad.cds.unistra.fr/simbad/) to enrich the Object Detail page with cross-catalog identifiers and J2000 coordinates.
+
+### Backend Proxy Endpoint
+
+```
+GET /api/catalog/aliases?name=<objectName>
+```
+
+The frontend never calls SIMBAD directly. All requests go through this server-side proxy, which:
+1. Strips local suffixes (`_mosaic`, `_sub`, `-sub`, and trailing numbers like ` 37`) from the object name before querying
+2. Issues an ADQL query to the SIMBAD TAP service via native `fetch` (no new npm dependencies)
+3. Curates and returns the results as JSON
+
+**No new npm packages** are introduced for this feature — native Node.js `fetch` (available from Node 18) is used throughout.
+
+### ADQL Query
+
+The query performs a self-join on the SIMBAD `ident` table to collect all cross-catalog identifiers for the object, and joins to the `basic` table for J2000 coordinates:
+
+```sql
+SELECT i2.id, b.ra, b.dec
+FROM ident i1
+JOIN ident i2 ON i1.oidref = i2.oidref
+JOIN basic b ON b.oid = i1.oidref
+WHERE i1.id = '<objectName>'
+```
+
+### Response Curation
+
+Raw SIMBAD identifiers are filtered to a curated set of major catalogs:
+
+| Catalog | Prefix kept |
+|---------|------------|
+| Messier | `M ` |
+| New General Catalogue | `NGC ` |
+| Index Catalogue | `IC ` |
+| Caldwell | `C ` |
+| Sharpless | `Sh ` |
+| Abell | `Abell ` |
+| Barnard | `B ` |
+| Henry Draper | `HD ` |
+| Hipparcos | `HIP ` |
+| Common name | `NAME ` prefix stripped |
+
+The object's own name is excluded from the "Also known as" list (only aliases are shown).
+
+### Coordinate Formatting
+
+Raw decimal RA/Dec values from SIMBAD are converted to standard sexagesimal notation:
+- **RA**: `HH MM SS` → displayed as `HHh MMm SSs`
+- **Dec**: `±DD.dddd°` → displayed as `±DD° MM′ SS″`
+
+### Server-Side In-Memory Cache
+
+Repeated visits to the same object's detail page cost zero network calls. Results are stored in a `Map` keyed by the normalised object name:
+
+```js
+const aliasCache = new Map();  // key: normalised name, value: { aliases, ra, dec }
+```
+
+The cache lives for the duration of the server process. It is not persisted to disk.
+
+### Gating & Graceful Degradation
+
+- The frontend only calls `/api/catalog/aliases` when `app.isOnline === true`
+- If the SIMBAD service returns no results, or the HTTP request fails, the endpoint returns `{ aliases: [], ra: null, dec: null }`
+- The frontend treats an empty response silently — no error is shown and the Object Detail page renders normally without the "Also known as" section
+
+### Frontend Integration
+
+The "Also known as" section is injected into the Object Detail header immediately below the catalog line. It is rendered only when:
+1. Online Mode is active (`app.isOnline === true`)
+2. The API returns at least one alias
+
+J2000 coordinates are shown in a separate line below the aliases, only when valid RA/Dec values are returned.
+
+---
+
+## 10. Object Re-Classification (File Renamer)
+
+Re-Classification allows the user to rename an astronomical object to an alternative catalog designation, with SSLM automatically renaming every associated file and folder across the library.
+
+### Trigger Condition
+
+The **Re Classify** button is rendered in the Object Detail header only when:
+1. Online Mode is active (`app.isOnline === true`)
+2. The SIMBAD alias lookup returned at least one identifier different from the current object name
+
+### API Endpoint
+
+```
+POST /api/rename-object
+```
+
+Request body:
+```json
+{ "libraryPath": "H:/SeeStar Library", "fromName": "M 42", "toName": "NGC 1976" }
+```
+
+Response:
+```json
+{ "success": true, "renamedFolders": 3, "renamedFiles": 47, "errors": [], "newName": "NGC 1976" }
+```
+
+### Backend: `FileRenamer` (`src/utils/fileRenamer.js`)
+
+The rename is executed in two phases to avoid filesystem conflicts:
+
+**Phase A — Rename files inside folders**
+
+For each directory related to the object (main folder, `_sub`, `-sub`, `_mosaic`, and any numbered variants), all files whose name contains the old object name are renamed to use the new name:
+
+```
+Stacked_210_M 42_30.0s_IRCUT_20250822-231258.fit
+→ Stacked_210_NGC 1976_30.0s_IRCUT_20250822-231258.fit
+```
+
+**Phase B — Rename the directories themselves**
+
+After all files within them have been renamed:
+```
+M 42/       → NGC 1976/
+M 42_sub/   → NGC 1976_sub/
+M 42-sub/   → NGC 1976-sub/
+M 42_mosaic → NGC 1976_mosaic/
+```
+
+### Safety Mechanisms
+
+| Check | Behaviour |
+|-------|-----------|
+| Pre-flight: source exists | Aborts if `fromName` directory not found |
+| Pre-flight: target conflict | Aborts if `toName` directory already exists |
+| File-before-folder ordering | Prevents mid-operation orphaned folders |
+| Per-file error collection | Errors reported at end; operation continues on non-fatal failures |
+| No silent failures | All errors returned in the response `errors` array |
+
+### Frontend Flow
+
+1. User clicks **Re Classify** button → modal opens showing alias options as selectable buttons
+2. User selects a name → second confirmation modal warns of permanent rename, shows `fromName → toName`
+3. User confirms → `POST /api/rename-object` called
+4. On success: success modal shown with renamed folder/file counts, closes automatically after 1.5 s
+5. Dashboard data refreshed; Object Detail re-rendered with the new name
