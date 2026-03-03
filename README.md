@@ -3,4 +3,4 @@
   <h1>SSLM — SeeStar Library Manager</h1>
 </div>
 
-I do not maintain this repository separatelu, please refer to https://github.com/AstroNoob-Tools/SSLM/releases
+I do not maintain this repository separately anymore, please refer to https://github.com/AstroNoob-Tools/SSLM/releases
